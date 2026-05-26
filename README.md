@@ -62,6 +62,21 @@ Make sure to hook up the components as follows:
 
 ---
 
+## 🖨️ 3D Printing & Mechanical Models
+
+The project includes all the necessary STL files to print the physical structure of the robotic hand. You can find them in the [3D Files Robo Hand/](./3D%20Files%20Robo%20Hand) directory:
+
+* **Fingers**: Individual models for the Thumb (`Finger_Thumb.stl`), Index (`Finger_Index.stl`), Middle (`Finger_Middle.stl`), Ring (`Finger_Ring.stl`), and Pinky (`Finger_Pinky.stl`).
+* **Hand Bases**: Choice of Left Hand (`Left_Hand.stl`) or Right Hand (`Right_Hand.stl`).
+* **Arm Structure**: Main Arm mount (`Arm.stl`) and its cover (`Arm_Cover.stl`) to secure the micro-servos and the PCA9685 controller.
+
+*Recommended print settings:*
+* Material: PLA or PETG.
+* Infill: 20% to 30% for durability.
+* Support: Enabled for finger joints and hand cavities.
+
+---
+
 ## 💻 ESP32-CAM Setup and Flashing (ESP-IDF)
 
 The project includes the `espressif/` folder configured as a native ESP-IDF project.
