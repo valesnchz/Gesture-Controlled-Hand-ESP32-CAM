@@ -1,135 +1,135 @@
-# Mano Robótica Controlada por Gestos via WiFi (ESP32-CAM + MediaPipe)
+# Gesture-Controlled Robotic Hand via WiFi (ESP32-CAM + MediaPipe)
 
-Este proyecto implementa un sistema de teleoperación inalámbrica de alta velocidad para una mano robótica de 5 dedos. El sistema utiliza **Visión Artificial** en tiempo real para detectar la mano de un usuario mediante la cámara de un **ESP32-CAM** por WiFi, procesa los movimientos con **MediaPipe** en la computadora (PC) y envía los comandos de movimiento a los servomotores a través de un controlador **PCA9685** conectado por I2C al ESP32.
+This project implements a high-speed wireless teleoperation system for a 5-finger robotic hand. The system uses real-time **Computer Vision** to detect a user's hand via an **ESP32-CAM** camera over WiFi, processes the movements using **MediaPipe** on the computer (PC), and sends the movement commands to the servomotors through a **PCA9685** controller connected via I2C to the ESP32.
 
-El microcontrolador está programado de forma nativa en **C** usando el framework oficial **ESP-IDF (Espressif IoT Development Framework)** con soporte de sistema operativo en tiempo real (**FreeRTOS**), logrando una velocidad, estabilidad y eficiencia muy superiores a las implementaciones tradicionales en Arduino.
+The microcontroler is programmed natively in **C** using Espressif's official **ESP-IDF (Espressif IoT Development Framework)** with **FreeRTOS** (Real-Time Operating System) support, achieving far superior speed, stability, and efficiency compared to traditional Arduino IDE implementations.
 
 ---
 
-## 🚀 Arquitectura del Sistema
+## 🚀 System Architecture
 
 ```mermaid
 graph TD
-    ESP[ESP32-CAM AP: CamaraESP32] -- Stream MJPEG Port 81 --> PC[Computadora / Python]
-    PC -- IA MediaPipe + Procesamiento Matemático --> PC
-    PC -- Comandos HTTP Port 82 /dedos?estado=1,0,1,1,0 --> ESP
-    ESP -- Bus I2C SDA:15, SCL:14 --> PCA[Controlador PCA9685]
-    PCA -- Pulsos PWM --> Servos[5x Servomotores SG90/MG90S]
+    ESP[ESP32-CAM AP: CamaraESP32] -- MJPEG Stream Port 81 --> PC[Computer / Python]
+    PC -- IA MediaPipe + Mathematical Processing --> PC
+    PC -- HTTP Commands Port 82 /dedos?estado=1,0,1,1,0 --> ESP
+    ESP -- I2C Bus SDA:15, SCL:14 --> PCA[PCA9685 Controller]
+    PCA -- PWM Pulses --> Servos[5x SG90/MG90S Servomotors]
 ```
 
-### Características Principales:
-* **Transmisión Ultra Rápida y sin Lag**: Python utiliza un hilo de comunicación persistente con una cola de envío optimizada de tamaño 1. Esto garantiza que la PC siempre envíe el estado más reciente, eliminando por completo los retrasos acumulados en la red WiFi.
-* **Filtro de Histéresis contra Temblores**: El script de Python incorpora un algoritmo con memoria para calcular el estado abierto/cerrado de los dedos mediante distancias euclidianas. Evita los temblores molestos de los servos cuando el usuario tiene la mano a medio cerrar.
-* **Sistema de Pausa y Salida Segura**: 
-  * Presionando la **Barra Espaciadora** en la PC se pausa el seguimiento y la mano robótica se abre completamente por seguridad.
-  * Presionando **'q'** se cierra el programa y se envía un comando forzado para abrir la mano robótica por completo, previniendo que los motores queden atascados haciendo fuerza.
+### Key Features:
+* **Ultra-Fast & Lag-Free Transmission**: Python uses a persistent background transmission thread with an optimized queue of size 1. This ensures the PC always sends the most recent state, completely eliminating network latency build-up over WiFi.
+* **Hysteresis Jitter-Filter**: The Python script incorporates a state-memory algorithm to calculate the open/closed status of each finger using Euclidean distances. It avoids annoying servo jittering when the user's hand is partially closed.
+* **Pause & Safe Exit System**:
+  * Pressing the **Spacebar** on the PC pauses tracking and forces the robotic hand to open completely for safety.
+  * Pressing **'q'** closes the program safely and sends a final command to fully open the robotic hand, preventing motors from remaining stuck under load.
 
 ---
 
-## 🛠️ Requisitos de Hardware
+## 🛠️ Hardware Requirements
 
-1. **ESP32-CAM** (Modelo estándar AI-Thinker).
-2. **Controlador PCA9685** (Módulo de 16 canales PWM por I2C).
-3. **5 Servomotores** (SG90 o MG90S).
-4. **Fuente de Alimentación Externa de 5V (Mínimo 2A o 3A)** para alimentar los servomotores (el ESP32-CAM no puede suministrar suficiente corriente para los motores).
-5. **GND común**: Es crítico unir el GND de la fuente externa de 5V con el GND del ESP32-CAM y del PCA9685.
-6. **Programador FTDI / USB a TTL** para subir el código al ESP32-CAM.
+1. **ESP32-CAM** (Standard AI-Thinker model).
+2. **PCA9685 Controller** (16-channel PWM module over I2C).
+3. **5 Servomotors** (SG90 or MG90S).
+4. **External 5V Power Supply (Minimum 2A or 3A)** to power the servos (the ESP32-CAM cannot supply enough current for the motors).
+5. **Common GND**: It is critical to connect the GND of the external 5V power supply with the GND of the ESP32-CAM and the PCA9685.
+6. **FTDI Programmer / USB-to-TTL** to upload code to the ESP32-CAM.
 
 ---
 
-## 🔌 Diagrama de Conexiones
+## 🔌 Pin Connections
 
-Asegúrate de realizar las conexiones de la siguiente manera:
+Make sure to hook up the components as follows:
 
-| Desde (ESP32-CAM) | Hacia (PCA9685) | Notas |
+| From (ESP32-CAM) | To (PCA9685) | Notes |
 | :--- | :--- | :--- |
-| **GPIO 15** | **SDA** | Bus I2C (Datos) |
-| **GPIO 14** | **SCL** | Bus I2C (Reloj) |
-| **5V / 3.3V** | **VCC** | Alimentación del chip lógico del PCA9685 |
-| **GND** | **GND** | Tierra común de la lógica |
+| **GPIO 15** | **SDA** | I2C Bus (Data) |
+| **GPIO 14** | **SCL** | I2C Bus (Clock) |
+| **5V / 3.3V** | **VCC** | Logic power supply for the PCA9685 chip |
+| **GND** | **GND** | Logic common ground |
 
-| Desde (Fuente de 5V Externa) | Hacia (PCA9685 - Bloque de Bornes) | Notas |
+| From (External 5V Power Supply) | To (PCA9685 - Green Terminal Block) | Notes |
 | :--- | :--- | :--- |
-| **V+ / 5V** | **V+ (Borne Verde)** | Alimentación de potencia para Servos |
-| **GND** | **GND (Borne Verde)** | Tierra de potencia. **Unir con el GND de la ESP32-CAM** |
+| **V+ / 5V** | **V+ (Green terminal)** | Servo power supply |
+| **GND** | **GND (Green terminal)** | Power ground. **Must be joined with ESP32-CAM GND** |
 
-### Servomotores en el PCA9685:
-* **Canal 0**: Pulgar
-* **Canal 1**: Índice
-* **Canal 2**: Medio
-* **Canal 3**: Anular
-* **Canal 4**: Meñique
+### Servomotor Channels on PCA9685:
+* **Channel 0**: Thumb
+* **Channel 1**: Index
+* **Channel 2**: Middle
+* **Channel 3**: Ring
+* **Channel 4**: Pinky
 
 ---
 
-## 💻 Configuración y Flasheo del ESP32-CAM (ESP-IDF)
+## 💻 ESP32-CAM Setup and Flashing (ESP-IDF)
 
-El proyecto incluye la carpeta `espressif/` configurada como un proyecto nativo de ESP-IDF.
+The project includes the `espressif/` folder configured as a native ESP-IDF project.
 
-### Opción 1: Usando la Extensión de VS Code (Recomendado)
-1. Instala la extensión **Espressif IDF** en VS Code.
-2. Configura la extensión (`Ctrl+Shift+P` -> `ESP-IDF: Configure ESP-IDF Extension` -> selecciona **Express**).
-3. Abre la carpeta `espressif/` en VS Code.
-4. Conecta tu ESP32-CAM en modo de flasheo (GPIO 0 a GND antes de encender) mediante el programador USB-TTL.
-5. Selecciona el puerto COM correspondiente y la placa `ESP32` en la barra inferior.
-6. Presiona el botón de **Build** 🔨 (Compilar) y luego **Flash** ⚡ (Subir código).
-7. Desconecta el GPIO 0 de GND y reinicia el módulo.
+### Option 1: Using VS Code Extension (Recommended)
+1. Install the **Espressif IDF** extension in VS Code.
+2. Configure the extension (`Ctrl+Shift+P` -> `ESP-IDF: Configure ESP-IDF Extension` -> select **Express**).
+3. Open the `espressif/` folder in VS Code.
+4. Connect your ESP32-CAM in flashing mode (connect GPIO 0 to GND before booting) via your USB-TTL programmer.
+5. Select the corresponding COM port and `ESP32` chip in the bottom bar.
+6. Press the **Build** 🔨 button and then **Flash** ⚡.
+7. Disconnect GPIO 0 from GND and reboot the module.
 
-### Opción 2: Usando la Consola de ESP-IDF
-Abre tu consola de ESP-IDF (con el entorno exportado) y ejecuta:
+### Option 2: Using the ESP-IDF Command Line
+Open your ESP-IDF command prompt (with the environment exported) and run:
 ```bash
-# Entrar a la carpeta
+# Navigate to directory
 cd espressif
 
-# Compilar el proyecto
+# Build the project
 idf.py build
 
-# Subir al ESP32 (reemplaza COM4 por tu puerto)
+# Flash to the ESP32 (replace COM4 with your port)
 idf.py -p COM4 flash
 
-# Monitorear logs en tiempo real
+# Monitor live logs
 idf.py -p COM4 monitor
 ```
 
-*Nota: El archivo `sdkconfig` ya se encuentra preconfigurado y optimizado con soporte para PSRAM y la correcta velocidad del procesador para la cámara del ESP32.*
+*Note: The `sdkconfig` file is already pre-configured and optimized with PSRAM support and the correct camera CPU frequency for the ESP32-CAM board.*
 
 ---
 
-## 🐍 Ejecución de la Aplicación en la PC (Python)
+## 🐍 PC Setup and Running (Python)
 
-### 1. Preparar el entorno virtual
-En la raíz del proyecto, abre una terminal y crea un entorno virtual:
+### 1. Prepare a Virtual Environment
+In the root directory, open a terminal and create a virtual environment:
 ```bash
-# Crear entorno
+# Create environment
 python -m venv .venv
 
-# Activar en Windows (PowerShell)
+# Activate on Windows (PowerShell)
 .venv\Scripts\Activate.ps1
 
-# Activar en Linux/macOS
+# Activate on Linux/macOS
 source .venv/bin/activate
 ```
 
-### 2. Instalar dependencias
-Instala las librerías necesarias ejecutando:
+### 2. Install Dependencies
+Install the required libraries:
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Ejecutar el controlador
-Conéctate con tu computadora a la red WiFi que genera el ESP32-CAM:
+### 3. Run the Controller
+Connect your PC to the WiFi network generated by the ESP32-CAM:
 * **SSID**: `CamaraESP32`
-* **Contraseña**: `12345678`
+* **Password**: `12345678`
 
-Una vez conectado, ejecuta el script principal:
+Once connected, run the main script:
 ```bash
 python mano_robotica_wifi_camara.py
 ```
 
-*Nota: La primera vez que inicies el script, este **descargará automáticamente** el modelo ligero de MediaPipe (`hand_landmarker.task`) de los servidores oficiales de Google y lo guardará localmente en el directorio de trabajo, por lo que no requieres realizar descargas manuales.*
+*Note: The first time you run the script, it will **automatically download** the lightweight MediaPipe model (`hand_landmarker.task`) from the official Google servers and save it locally, so no manual downloading is necessary.*
 
 ---
 
-## 🎮 Controles en Pantalla
-* **Barra Espaciadora**: Pausa / Reanuda el envío de movimientos. Por seguridad, al pausar el sistema, la mano robótica se abrirá por completo.
-* **Tecla 'q'**: Cierra de forma segura la ventana, envía un comando final de apertura a la mano y finaliza el script.
+## 🎮 In-App Controls
+* **Spacebar**: Pause / Resume sending movements. For safety, the robotic hand will fully open when paused.
+* **'q' key**: Safely closes the stream window, sends a final open command to the hand, and exits the script.
